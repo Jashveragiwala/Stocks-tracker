@@ -1,12 +1,7 @@
-// src/pages/CurrentInvestments.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import { styled } from '@mui/material/styles';
-
-const data = [
-  { id: 1, name: 'Stock A', buyingPrice: 100, currentPrice: 120, quantity: 50 },
-  { id: 2, name: 'Stock B', buyingPrice: 200, currentPrice: 180, quantity: 30 },
-];
+import axios from 'axios';
 
 const calculateCommission = (price) => price * 0.0066 * 2;
 const calculateProfitPerShare = (buyingPrice, currentPrice) => currentPrice - buyingPrice - calculateCommission(buyingPrice);
@@ -23,13 +18,26 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': {
     backgroundColor: theme.palette.action.hover,
   },
-  // Hide last border
   '&:last-child td, &:last-child th': {
     border: 0,
   },
 }));
 
 const CurrentInvestments = () => {
+  const [data, setData] = useState([]);
+  const [selectedStock, setSelectedStock] = useState(null);
+
+  useEffect(() => {
+    axios.get('http://localhost:3001/api/watchlist')
+      .then(response => {
+        console.log(response.data); // Log the data to inspect the structure
+        setData(response.data);
+      })
+      .catch(error => {
+        console.error('Error fetching data: ', error);
+      });
+  }, []);
+
   return (
     <Container>
       <Typography variant="h4" gutterBottom>Current Investments</Typography>
@@ -50,18 +58,24 @@ const CurrentInvestments = () => {
           </TableHead>
           <TableBody>
             {data.map((row, index) => {
-              const commission = calculateCommission(row.buyingPrice);
-              const profitPerShare = calculateProfitPerShare(row.buyingPrice, row.currentPrice);
-              const overallProfit = calculateOverallProfit(profitPerShare, row.quantity);
-              const totalInvested = calculateTotalInvested(row.buyingPrice, row.quantity);
+              console.log(row); // Log the row to inspect the structure
+              const name = row.StockName || 'N/A';
+              const buyingPrice = row.Bought || 0;
+              const currentPrice = row.CurrentPrice || 0;
+              const quantity = row.SerialNo || 0;
+
+              const commission = calculateCommission(buyingPrice);
+              const profitPerShare = calculateProfitPerShare(buyingPrice, currentPrice);
+              const overallProfit = calculateOverallProfit(profitPerShare, quantity);
+              const totalInvested = calculateTotalInvested(buyingPrice, quantity);
 
               return (
-                <StyledTableRow key={row.id}>
+                <StyledTableRow key={row.SerialNo} onClick={() => setSelectedStock(row)}>
                   <TableCell>{index + 1}</TableCell>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell>${row.buyingPrice.toFixed(2)}</TableCell>
-                  <TableCell>${row.currentPrice.toFixed(2)}</TableCell>
-                  <TableCell>{row.quantity}</TableCell>
+                  <TableCell>{name}</TableCell>
+                  <TableCell>${buyingPrice.toFixed(2)}</TableCell>
+                  <TableCell>${currentPrice.toFixed(2)}</TableCell>
+                  <TableCell>{quantity}</TableCell>
                   <TableCell>${commission.toFixed(2)}</TableCell>
                   <TableCell>${profitPerShare.toFixed(2)}</TableCell>
                   <TableCell>${overallProfit.toFixed(2)}</TableCell>
